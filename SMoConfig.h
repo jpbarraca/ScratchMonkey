@@ -21,21 +21,36 @@
 //  - Standard Arduino: SPI on pins 10-13, pins 0/1 used for Serial (ATmega168/328)
 //  - Leonardo/Micro:   SPI on dedicated pins, pins 0/1 available   (ATmega32u4)
 //  - Mega:             SPI on pins 50-53, pins 0/1 used for Serial (ATmega1280/2560)
-//
+//  - Nano:             SPI on pins 10-13, pins 0/1 used both for Serial and programming (ATmega168/328)
 
 #define    SMO_LAYOUT_STANDARD     0
 #define    SMO_LAYOUT_LEONARDO     1
 #define    SMO_LAYOUT_MEGA         2
+#define    SMO_LAYOUT_NANO         3
+
 
 #if defined(__AVR_ATmega32U4__)
+
 #define SMO_LAYOUT  SMO_LAYOUT_LEONARDO
+
 #elif defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+
 #define SMO_LAYOUT  SMO_LAYOUT_MEGA
+
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__)
-#define SMO_LAYOUT  SMO_LAYOUT_STANDARD
+
+//#define SMO_LAYOUT  SMO_LAYOUT_STANDARD
+#define SMO_LAYOUT  SMO_LAYOUT_NANO
+
 #else
+
 #error Unknown Arduino platform, help me define the correct pin layout
+
 #endif
+
+
+
+
 
 //
 // Define to open a serial port for debugging
@@ -59,6 +74,9 @@ enum {
 #elif SMO_LAYOUT==SMO_LAYOUT_LEONARDO
     SMO_SVCC       = 11,
     SMO_DEBUG      = A4
+#elif SMO_LAYOUT == SMO_LAYOUT_NANO
+    SMO_SVCC       = 11,
+    SMO_DEBUG      = A4
 #else
     SMO_SVCC       = 11,
     SMO_DEBUG      = 18
@@ -70,23 +88,23 @@ enum {
 //
 // LICENSE
 //
-// Redistribution and use in source and binary forms, with or without modification, 
+// Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 //
-//  * Redistributions of source code must retain the above copyright notice, this 
+//  * Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright notice, 
-//    this list of conditions and the following disclaimer in the documentation 
+//  * Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//

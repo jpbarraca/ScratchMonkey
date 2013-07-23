@@ -37,14 +37,14 @@ enum {
 };
 
 //
-// HVPP, for 28 pins and more, requires 8 output signals and 1 input 
+// HVPP, for 28 pins and more, requires 8 output signals and 1 input
 // signal. 20 pin MCUs multiplex some of the output signals, and they
 // don't do it all the same way. We rely on the control stack uploaded
-// by avrdude to tell us what signals to set, when. 
+// by avrdude to tell us what signals to set, when.
 //
-// This implementation uses a 74HV595 shift register for the output 
+// This implementation uses a 74HV595 shift register for the output
 // signal, but if you're using a board with more output pins, or are
-// willing to have the TX/RX pins do double duty, you may be able to 
+// willing to have the TX/RX pins do double duty, you may be able to
 // dispense with that.
 //
 // Control patterns, expressed as index values for the control stack
@@ -131,10 +131,17 @@ HVPPGetDataBits()
     // No need for masking
     return ((PINB << PORTB_SHIFT) | (PIND >> PORTD_SHIFT)) & 0xFF;
 }
+inline void
+HVPPSavePortState(){
+}
+
+inline void
+HVPPRestorePortState(){
+}
 #elif SMO_LAYOUT==SMO_LAYOUT_LEONARDO
 //
-// Leonardos don't have 8 contiguous pins anywhere, so we split the 
-// control signals across two ports. The data signals are not as 
+// Leonardos don't have 8 contiguous pins anywhere, so we split the
+// control signals across two ports. The data signals are not as
 // critical, so we just use digitalRead (we'd have to split them
 // across at least three ports).
 //
@@ -188,6 +195,88 @@ HVPPGetDataBits()
 
     return dataIn;
 }
+inline void
+HVPPSavePortState(){
+}
+
+inline void
+HVPPRestorePortState(){
+}
+
+#elif SMO_LAYOUT==SMO_LAYOUT_NANO
+
+typedef struct{
+  uint8_t portd;
+  uint8_t ddrd;
+}HVPPPortState_t;
+
+HVPPPortState_t savedState;
+
+//Use Analog pins A0-A5 plus D0-1 for control
+//use Digital Pins D2-D9 for Data
+enum {
+    PORTC_MASK = 0xF1,
+    PORTD_MASK = 0x0C,
+};
+
+inline void
+HVPPSetControlSignals(uint8_t signals)
+{
+    PORTC   = (PORTC & ~PORTC_MASK) | (signals & PORTC_MASK);
+    PORTD   = (PORTD & ~PORTD_MASK) | (signals & PORTD_MASK);
+}
+
+inline void
+HVPPInitControlSignals()
+{
+    DDRC   |= PORTC_MASK;
+    DDRD   |= PORTD_MASK;
+}
+
+inline void
+HVPPEndControls()
+{
+}
+
+inline void
+HVPPSetDataMode(uint8_t mode)
+{
+    for (uint8_t pin=2; pin<10; ++pin)
+        pinMode(pin, mode);
+}
+
+inline void
+HVPPSetDataBits(uint8_t dataOut)
+{
+    for (uint8_t pin=2; pin<10; ++pin) {
+        digitalWrite(pin, dataOut & 1);
+        dataOut >>= 1;
+    }
+}
+
+inline uint8_t
+HVPPGetDataBits()
+{
+    uint8_t dataIn;
+
+    for (uint8_t pin=9; pin >= 2; --pin)
+        dataIn = (dataIn << 1) | digitalRead(pin);
+
+    return dataIn;
+}
+
+inline void
+HVPPSavePortState(){
+  savedState.portd = (PORTD & 0b00000011);
+  savedState.ddrd = (DDRD & 0b00000011);
+}
+
+inline void
+HVPPRestorePortState(){
+   PORTD |= (savedState.portd & 0b00000011);
+   DDRD  |= (savedState.ddrd & 0b00000011);
+}
+
 #else
 //
 // Megas have lots of contiguous pins, so we just use two full ports.
@@ -229,6 +318,14 @@ inline uint8_t
 HVPPGetDataBits()
 {
     return PINK;
+}
+
+inline void
+HVPPSavePortState(){
+}
+
+inline void
+HVPPRestorePortState(){
 }
 #endif
 
@@ -281,7 +378,7 @@ inline uint8_t
 HVPPGetDataRaw()
 {
     uint8_t dataIn = HVPPGetDataBits();
-    
+
 #ifdef DEBUG_HVPP
     SMoDebug.print("Data>");
     SMoDebug.println(dataIn, HEX);
@@ -358,9 +455,14 @@ HVPPPollWait(uint8_t pollTimeout)
 {
     uint32_t target = millis()+pollTimeout+5;
     while (millis() != target)
-        if (digitalRead(HVPP_RDY)) 
+        if (digitalRead(HVPP_RDY))
             return true;
+
+
+    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_RDY_BSY_TOUT);
+    HVPPRestorePortState();
+
     return false;
 }
 
@@ -378,7 +480,8 @@ SMoHVPP::EnterProgmode()
     const uint8_t   powoffDelay = SMoCommand::gBody[5];
     const uint8_t   resetDelay1 = SMoCommand::gBody[6];
     const uint8_t   resetDelay2 = SMoCommand::gBody[7];
-    
+
+
     pinMode(HVPP_VCC, OUTPUT);
     digitalWrite(HVPP_VCC, LOW);
     digitalWrite(HVPP_RESET, HIGH); // Set BEFORE pinMode, so we don't glitch LOW
@@ -401,9 +504,11 @@ SMoHVPP::EnterProgmode()
     digitalWrite(HVPP_RESET, LOW);
     delay(resetDelay1);
     delayMicroseconds(resetDelay2);
-    
+
+    HVPPSavePortState();
     SMoCommand::SendResponse();
-    
+    HVPPRestorePortState();
+
     HVPPSetControls(kDone);
 }
 
@@ -418,8 +523,9 @@ SMoHVPP::LeaveProgmode()
 
     delay(resetDelay);
 
+    HVPPSavePortState();
     SMoCommand::SendResponse();
-}
+    HVPPRestorePortState();}
 
 void
 SMoHVPP::ChipErase()
@@ -433,10 +539,11 @@ SMoHVPP::ChipErase()
     if (pollTimeout) {
         if (!HVPPPollWait(pollTimeout))
             return;
-    } 
+    }
 
+    HVPPSavePortState();
     SMoCommand::SendResponse();
-}
+    HVPPRestorePortState();}
 
 void
 SMoHVPP::ProgramFlash()
@@ -480,7 +587,7 @@ SMoHVPP::ProgramFlash()
 
             timeout = !HVPPPollWait(pollTimeout);
         }
-    } else { 
+    } else {
         //
         // Are there any non-paged HVPP enabled MCUs left?
         //
@@ -489,8 +596,11 @@ SMoHVPP::ProgramFlash()
     // Leave Flash Programming Mode
     //
     HVPPLoadCommand(0x00);
-    if (!timeout)
-        SMoCommand::SendResponse();
+    if (!timeout){
+      HVPPSavePortState();
+      SMoCommand::SendResponse();
+      HVPPRestorePortState();
+    }
 }
 
 void
@@ -498,7 +608,7 @@ SMoHVPP::ReadFlash()
 {
     int16_t     numBytes    =  (SMoCommand::gBody[1] << 8) | SMoCommand::gBody[2];
     uint8_t *   outData     =  &SMoCommand::gBody[2];
-    
+
     //
     // Flash Read
     //
@@ -524,7 +634,11 @@ SMoHVPP::ReadFlash()
         ++SMoGeneral::gAddress;
     }
     *outData = STATUS_CMD_OK;
+
+    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, outData-&SMoCommand::gBody[0]);
+    HVPPRestorePortState();
+
 }
 
 void
@@ -563,7 +677,7 @@ SMoHVPP::ProgramEEPROM()
 
             timeout = !HVPPPollWait(pollTimeout);
         }
-    } else { 
+    } else {
         //
         // Are there any non-paged HVPP enabled MCUs left?
         //
@@ -572,8 +686,11 @@ SMoHVPP::ProgramEEPROM()
     // Leave EEPROM Programming Mode
     //
     HVPPLoadCommand(0x00);
-    if (!timeout)
-        SMoCommand::SendResponse();    
+    if (!timeout){
+      HVPPSavePortState();
+      SMoCommand::SendResponse();
+      HVPPRestorePortState();
+    }
 }
 
 void
@@ -581,7 +698,7 @@ SMoHVPP::ReadEEPROM()
 {
     int16_t     numBytes    =  (SMoCommand::gBody[1] << 8) | SMoCommand::gBody[2];
     uint8_t *   outData     =  &SMoCommand::gBody[2];
-    
+
     //
     // EEPROM Read
     //
@@ -604,10 +721,13 @@ SMoHVPP::ReadEEPROM()
         ++SMoGeneral::gAddress;
     }
     *outData = STATUS_CMD_OK;
+
+    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, outData-&SMoCommand::gBody[0]);
+    HVPPRestorePortState();
 }
 
-static void 
+static void
 ProgramFuseLock(uint8_t command, uint8_t byteSel)
 {
     const uint8_t   value       = SMoCommand::gBody[2];
@@ -618,8 +738,11 @@ ProgramFuseLock(uint8_t command, uint8_t byteSel)
     HVPPLoadData(kLowByte, value);
     HVPPCommitDataWithPulseWidth(pulseWidth, byteSel);
 
-    if (HVPPPollWait(pollTimeout))
-        SMoCommand::SendResponse();
+    if (HVPPPollWait(pollTimeout)){
+      HVPPSavePortState();
+      SMoCommand::SendResponse();
+      HVPPRestorePortState();
+    }
 }
 
 static void
@@ -633,7 +756,9 @@ ReadFuseLock(uint8_t byteSel)
     HVPPSetControls(kDone);
     HVPPDataMode(OUTPUT);
 
+    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, 3);
+    HVPPRestorePortState();
 }
 
 void
@@ -653,13 +778,13 @@ SMoHVPP::ReadFuse()
 }
 
 void
-SMoHVPP::ProgramLock()   
+SMoHVPP::ProgramLock()
 {
     ProgramFuseLock(0x20, kLowByte);
 }
 
 void
-SMoHVPP::ReadLock()       
+SMoHVPP::ReadLock()
 {
     ReadFuseLock(kHighByte);
 }
@@ -676,11 +801,13 @@ ReadSignatureCal(uint8_t addr, uint8_t byteSel)
     HVPPSetControls(kDone);
     HVPPDataMode(OUTPUT);
 
+    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, 3);
+    HVPPRestorePortState();
 }
 
 void
-SMoHVPP::ReadSignature()  
+SMoHVPP::ReadSignature()
 {
     const uint8_t   addr    = SMoCommand::gBody[1];
 
@@ -688,7 +815,7 @@ SMoHVPP::ReadSignature()
 }
 
 void
-SMoHVPP::ReadOscCal()     
+SMoHVPP::ReadOscCal()
 {
     ReadSignatureCal(0x00, kHighByte);
 }
@@ -696,23 +823,23 @@ SMoHVPP::ReadOscCal()
 //
 // LICENSE
 //
-// Redistribution and use in source and binary forms, with or without modification, 
+// Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 //
-//  * Redistributions of source code must retain the above copyright notice, this 
+//  * Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright notice, 
-//    this list of conditions and the following disclaimer in the documentation 
+//  * Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//

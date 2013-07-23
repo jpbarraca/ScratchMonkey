@@ -13,11 +13,11 @@
 // This sketch turns an Arduino into an AVR programmer, supporting the following
 // protocols:
 //
-//  * stk500v2    for ISP programming (largely pin compatible with ArduinoISP 
+//  * stk500v2    for ISP programming (largely pin compatible with ArduinoISP
 //                sketch). See SMoISP.h for pinout.
-//  * stk500hvsp  for HVSP programming (high voltage serial, for 8 and 14 pin 
+//  * stk500hvsp  for HVSP programming (high voltage serial, for 8 and 14 pin
 //                ATtinys). See SMoHVSP.h for pinout.
-//  * stk500pp    for HVPP programming (high voltage parallel, for 20 pin 
+//  * stk500pp    for HVPP programming (high voltage parallel, for 20 pin
 //                ATtinys and all ATmegas). See SMoHVPP.h for pinout.
 //
 
@@ -33,7 +33,6 @@
 void
 setup()
 {
-    Serial.begin(115200);
 }
 
 void
@@ -68,7 +67,7 @@ loop()
         SMoISP::LeaveProgmode();
         break;
     case CMD_CHIP_ERASE_ISP:
-        SMoISP::ChipErase();    
+        SMoISP::ChipErase();
         break;
     case CMD_PROGRAM_FLASH_ISP:
         SMoISP::ProgramFlash();
@@ -113,7 +112,7 @@ loop()
         SMoHVSP::LeaveProgmode();
         break;
     case CMD_CHIP_ERASE_HVSP:
-        SMoHVSP::ChipErase();    
+        SMoHVSP::ChipErase();
         break;
     case CMD_PROGRAM_FLASH_HVSP:
         SMoHVSP::ProgramFlash();
@@ -144,7 +143,7 @@ loop()
         break;
     case CMD_READ_OSCCAL_HVSP:
         SMoHVSP::ReadOscCal();
-        break;        
+        break;
         //
         // HVPP Commands
         //
@@ -155,7 +154,7 @@ loop()
         SMoHVPP::LeaveProgmode();
         break;
     case CMD_CHIP_ERASE_PP:
-        SMoHVPP::ChipErase();    
+        SMoHVPP::ChipErase();
         break;
     case CMD_PROGRAM_FLASH_PP:
         SMoHVPP::ProgramFlash();
@@ -186,10 +185,12 @@ loop()
         break;
     case CMD_READ_OSCCAL_PP:
         SMoHVPP::ReadOscCal();
-        break;     
-        // Pseudocommands   
-    case SMoCommand::kHeaderError:
+        break;
+        // Pseudocommands
     case SMoCommand::kChecksumError:
+                SMoCommand::SendResponse(ANSWER_CKSUM_ERROR);
+                break;
+    case SMoCommand::kHeaderError:
     case SMoCommand::kIncomplete:
         break;  // Ignore
     default:
@@ -201,23 +202,23 @@ loop()
 //
 // LICENSE
 //
-// Redistribution and use in source and binary forms, with or without modification, 
+// Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 //
-//  * Redistributions of source code must retain the above copyright notice, this 
+//  * Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright notice, 
-//    this list of conditions and the following disclaimer in the documentation 
+//  * Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//

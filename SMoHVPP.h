@@ -14,28 +14,28 @@
 // To use ScratchMonkey for HVPP programming, connect the following pins
 // of your arduino:
 //
-// PIN          Standard        Leonardo/Micro  Mega (1280 and 2560)
+// PIN          Standard        Leonardo/Micro  Mega (1280 and 2560) Nano
 //
-// D0-7           2-9             2-9          A8-A15                              
-// HVRESET         10              10              10
-// SVCC            A0              11              11
-// RDY             12              12              12
-// XTAL            A2              13              13
+// D0-7           2-9             2-9          A8-A15               2-9
+// HVRESET         10              10              10                10
+// SVCC            A0              11              11                11
+// RDY             12              12              12                12
+// XTAL            A2              13              13                13
 //
-// MOSI 74595      11                                          
-// SCK 74595       13                                           
-// RCLK 74595      A1                       
+// MOSI 74595      11
+// SCK 74595       13
+// RCLK 74595      A1
 //
-// CTRL0                           A5              A0                              
-// CTRL2                           RX (1)          A2
-// CTRL3                           TX (0)          A3
-// CTRL4                           A3              A4
-// CTRL5                           A2              A5
-// CTRL6                           A1              A6
-// CTRL7                           A0              A7
+// CTRL0                           A5              A0                A0
+// CTRL2                           RX (1)          A2                RX (1)
+// CTRL3                           TX (0)          A3                TX (0)
+// CTRL4                           A3              A4                A3
+// CTRL5                           A2              A5                A2
+// CTRL6                           A1              A6                A1
+// CTRL7                           A0              A7                A0
 //
-// The HVRESET signal must then be used to generate a 12V signal to 
-// apply to the RESET pin of the target MCU. A few suitable arrangements 
+// The HVRESET signal must then be used to generate a 12V signal to
+// apply to the RESET pin of the target MCU. A few suitable arrangements
 // are discussed in the manual, in the Generating High Voltage section.
 //
 // Since HVPP requires more signals than there are readily available pins
@@ -44,33 +44,33 @@
 // and Mega Arduinos, in contrast, have a sufficient number of direct pins.
 //
 // The tinyX61 family has a different mapping for the control pins, so
-// their meaning is explained in the ALTMEANING column. All other MCUs 
+// their meaning is explained in the ALTMEANING column. All other MCUs
 // follow the pin meanings in MEANING, although the 20 pin tinys multiplex
 // some of those pins.
 //
 // PIN      74HC595     MEANING     ALTMEANING
 //
-// MOSI  	14 (SER)
-// RCLK  	12 (RCLK)
-// SCK   	11 (SRCLK)
-// CTRL0 	15 (QA)     BS2         -
-// CTRL2 	 2 (QC)     OE          WR
-// CTRL3 	 3 (QD)     WR          XA0
-// CTRL4 	 4 (QE)     BS1         XA1
-// CTRL5 	 5 (QF)     XA0         PAGEL
-// CTRL6 	 6 (QG)     XA1         -
-// CTRL7 	 7 (QH)     PAGEL       OE
-// VCC   	16 (VCC)                            5V, NOT Slave VCC
-//       	10 (SRCLR)
-// GND   	 8 (GND)
-//       	13 (OE)
+// MOSI     14 (SER)
+// RCLK     12 (RCLK)
+// SCK      11 (SRCLK)
+// CTRL0    15 (QA)     BS2         -
+// CTRL2     2 (QC)     OE          WR
+// CTRL3     3 (QD)     WR          XA0
+// CTRL4     4 (QE)     BS1         XA1
+// CTRL5     5 (QF)     XA0         PAGEL
+// CTRL6     6 (QG)     XA1         -
+// CTRL7     7 (QH)     PAGEL       OE
+// VCC      16 (VCC)                            5V, NOT Slave VCC
+//          10 (SRCLR)
+// GND       8 (GND)
+//          13 (OE)
 //
 // On your target system, connect these pins, and power, to the following
 // pins of the DIP packages (for other packages, consult the data sheet):
 //
 // PIN      Tiny26/X61  TinyX313    Mega*8      Mega*4
 //          (20 pin)    (20 pin)    (28 pin)    (40 pin)
-//                                  
+//
 // RESET    10 (PB7)     1 (PA2)     1 (PC6)     9 (RESET)  From HV, NOT HVRESET
 // XTAL      7 (PB4)     5 (PA0)     9 (PB6)    13 (XTAL1)
 // RDY       9 (PB6)     3 (PD1)     3 (PD1)    15 (PD1)
@@ -119,23 +119,23 @@ namespace SMoHVPP {
 //
 // LICENSE
 //
-// Redistribution and use in source and binary forms, with or without modification, 
+// Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 //
-//  * Redistributions of source code must retain the above copyright notice, this 
+//  * Redistributions of source code must retain the above copyright notice, this
 //    list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright notice, 
-//    this list of conditions and the following disclaimer in the documentation 
+//  * Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
 //
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
