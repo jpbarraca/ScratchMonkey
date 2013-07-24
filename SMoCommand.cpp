@@ -49,42 +49,44 @@ ResetToIdle()
 int
 SMoCommand::GetNextCommand()
 {
-    Serial.begin(115200);
-    if (!Serial.available() || sState == kCompleteState)
-        return kIncomplete;
+  Serial.begin(115200);
+  ResetToIdle();
 
+  while(true){
+    
+    while(!Serial.available()){}
+      
     sCheckSum ^= (gBody[sNumBytesRead++] = Serial.read());
-
-    Serial.end();
-
+   
     if (sNumBytesRead < sNumBytesWanted){
-      return kIncomplete;
+      continue;
     }
 
     switch (sState) {
     case kIdleState:
         if (gBody[0] != MESSAGE_START) {
             ResetToIdle();
-
-            return kHeaderError;
+            
+            continue;
         } else {                            // Start of message
             sState          = kHeaderState;
             sNumBytesWanted = kHeaderSize;
 
-            return kIncomplete;
+            continue;
         }
     case kHeaderState:
         if (gBody[4] != TOKEN){
             ResetToIdle();
 
-            return kHeaderError;
+           continue;
         }
         sNumBytesWanted = (uint16_t(gBody[2])<<8) | gBody[3];
 
         if (sNumBytesWanted > kMaxBodySize){
+          
             ResetToIdle();
 
-            return kHeaderError;
+            continue;
         }
 
         sState          = kBodyState;
@@ -92,22 +94,26 @@ SMoCommand::GetNextCommand()
         sNumBytesRead   = 0;
         ++sNumBytesWanted;  // For checksum byte
 
-        return kIncomplete;
+        continue;
     case kBodyState:
         if (sCheckSum) {
             gBody[0] = ANSWER_CKSUM_ERROR;
+            ResetToIdle();
 
-            return kChecksumError;
+            continue;
         } else {
             sState  = kCompleteState;
             gSize   = sNumBytesRead-1;
 
+            delay(5);
+            Serial.end();
+            
             return gBody[0];   // Success!
         }
     default:
-
-      return kIncomplete;
+           continue;
     }
+  }
 }
 
 void
@@ -132,6 +138,8 @@ SMoCommand::SendResponse(uint8_t status, uint16_t bodySize)
     Serial.write(sCheckSum);
 
     ResetToIdle();
+   
+    delay(5);
     Serial.end();
 }
 

@@ -26,7 +26,7 @@
 // SCK 74595       13
 // RCLK 74595      A1
 //
-// CTRL0                           A5              A0                A0
+// CTRL0                           A5              A0                A5
 // CTRL2                           RX (1)          A2                RX (1)
 // CTRL3                           TX (0)          A3                TX (0)
 // CTRL4                           A3              A4                A3

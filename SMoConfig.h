@@ -68,6 +68,7 @@
 //
 enum {
     SMO_HVRESET    = 10,
+    
 #if SMO_LAYOUT==SMO_LAYOUT_STANDARD
     SMO_SVCC       = A0,
     SMO_DEBUG      = A5

@@ -30,6 +30,7 @@
 #include "SMoHVSP.h"
 #include "SMoHVPP.h"
 
+
 void
 setup()
 {
@@ -37,7 +38,7 @@ setup()
 
 void
 loop()
-{
+{    
     switch (SMoCommand::GetNextCommand()) {
         //
         // General commands
@@ -188,8 +189,8 @@ loop()
         break;
         // Pseudocommands
     case SMoCommand::kChecksumError:
-                SMoCommand::SendResponse(ANSWER_CKSUM_ERROR);
-                break;
+        SMoCommand::SendResponse(ANSWER_CKSUM_ERROR);
+        break;
     case SMoCommand::kHeaderError:
     case SMoCommand::kIncomplete:
         break;  // Ignore

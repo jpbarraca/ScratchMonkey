@@ -131,13 +131,6 @@ HVPPGetDataBits()
     // No need for masking
     return ((PINB << PORTB_SHIFT) | (PIND >> PORTD_SHIFT)) & 0xFF;
 }
-inline void
-HVPPSavePortState(){
-}
-
-inline void
-HVPPRestorePortState(){
-}
 #elif SMO_LAYOUT==SMO_LAYOUT_LEONARDO
 //
 // Leonardos don't have 8 contiguous pins anywhere, so we split the
@@ -195,48 +188,39 @@ HVPPGetDataBits()
 
     return dataIn;
 }
-inline void
-HVPPSavePortState(){
-}
-
-inline void
-HVPPRestorePortState(){
-}
-
-#elif SMO_LAYOUT==SMO_LAYOUT_NANO
-
-typedef struct{
-  uint8_t portd;
-  uint8_t ddrd;
-}HVPPPortState_t;
-
-HVPPPortState_t savedState;
+#elif SMO_LAYOUT == SMO_LAYOUT_NANO
 
 //Use Analog pins A0-A5 plus D0-1 for control
 //use Digital Pins D2-D9 for Data
 enum {
-    PORTC_MASK = 0xF1,
-    PORTD_MASK = 0x0C,
+    PORTD_MASK = 0xFC,
+    PORTB_MASK = 0x03,
+    PORTD_SHIFT = 2,
+    PORTB_SHIFT = 6
 };
 
 inline void
 HVPPSetControlSignals(uint8_t signals)
 {
-    PORTC   = (PORTC & ~PORTC_MASK) | (signals & PORTC_MASK);
-    PORTD   = (PORTD & ~PORTD_MASK) | (signals & PORTD_MASK);
+    pinMode(0,OUTPUT);
+    pinMode(1,OUTPUT);
+    
+    PORTC   = (PORTC & ~0b00011111) | ((signals >> 2) & 0b00011111);
+    PORTD   = (PORTD & ~0b00000011) | (signals & 0b00000011);
 }
 
 inline void
 HVPPInitControlSignals()
 {
-    DDRC   |= PORTC_MASK;
-    DDRD   |= PORTD_MASK;
+    DDRD |= 0b00000011;
+    DDRC |= 0b00111111;
 }
 
 inline void
 HVPPEndControls()
 {
 }
+
 
 inline void
 HVPPSetDataMode(uint8_t mode)
@@ -248,7 +232,7 @@ HVPPSetDataMode(uint8_t mode)
 inline void
 HVPPSetDataBits(uint8_t dataOut)
 {
-    for (uint8_t pin=2; pin<10; ++pin) {
+      for (uint8_t pin=2; pin<10; ++pin) {
         digitalWrite(pin, dataOut & 1);
         dataOut >>= 1;
     }
@@ -256,25 +240,13 @@ HVPPSetDataBits(uint8_t dataOut)
 
 inline uint8_t
 HVPPGetDataBits()
-{
+{    
     uint8_t dataIn;
 
     for (uint8_t pin=9; pin >= 2; --pin)
         dataIn = (dataIn << 1) | digitalRead(pin);
 
     return dataIn;
-}
-
-inline void
-HVPPSavePortState(){
-  savedState.portd = (PORTD & 0b00000011);
-  savedState.ddrd = (DDRD & 0b00000011);
-}
-
-inline void
-HVPPRestorePortState(){
-   PORTD |= (savedState.portd & 0b00000011);
-   DDRD  |= (savedState.ddrd & 0b00000011);
 }
 
 #else
@@ -318,14 +290,6 @@ inline uint8_t
 HVPPGetDataBits()
 {
     return PINK;
-}
-
-inline void
-HVPPSavePortState(){
-}
-
-inline void
-HVPPRestorePortState(){
 }
 #endif
 
@@ -459,10 +423,8 @@ HVPPPollWait(uint8_t pollTimeout)
             return true;
 
 
-    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_RDY_BSY_TOUT);
-    HVPPRestorePortState();
-
+    
     return false;
 }
 
@@ -505,27 +467,24 @@ SMoHVPP::EnterProgmode()
     delay(resetDelay1);
     delayMicroseconds(resetDelay2);
 
-    HVPPSavePortState();
-    SMoCommand::SendResponse();
-    HVPPRestorePortState();
-
     HVPPSetControls(kDone);
+    
+    SMoCommand::SendResponse();
 }
 
 void
 SMoHVPP::LeaveProgmode()
-{
+{    
     // const uint8_t   stabDelay   = SMoCommand::gBody[1];
     const uint8_t   resetDelay = SMoCommand::gBody[2];
-
+    
     digitalWrite(HVPP_RESET, HIGH);
     digitalWrite(HVPP_VCC, LOW);
 
     delay(resetDelay);
-
-    HVPPSavePortState();
+     
     SMoCommand::SendResponse();
-    HVPPRestorePortState();}
+}
 
 void
 SMoHVPP::ChipErase()
@@ -537,17 +496,17 @@ SMoHVPP::ChipErase()
     HVPPCommitDataWithPulseWidth(pulseWidth);
 
     if (pollTimeout) {
-        if (!HVPPPollWait(pollTimeout))
-            return;
+        if (!HVPPPollWait(pollTimeout)){
+          return;
+        }
     }
-
-    HVPPSavePortState();
+    
     SMoCommand::SendResponse();
-    HVPPRestorePortState();}
+ }
 
 void
 SMoHVPP::ProgramFlash()
-{
+{    
     int16_t         numBytes    =  (SMoCommand::gBody[1] << 8) | SMoCommand::gBody[2];
     const uint8_t   mode        =   SMoCommand::gBody[3];
     const uint8_t   pollTimeout =   SMoCommand::gBody[4];
@@ -597,9 +556,7 @@ SMoHVPP::ProgramFlash()
     //
     HVPPLoadCommand(0x00);
     if (!timeout){
-      HVPPSavePortState();
       SMoCommand::SendResponse();
-      HVPPRestorePortState();
     }
 }
 
@@ -635,10 +592,7 @@ SMoHVPP::ReadFlash()
     }
     *outData = STATUS_CMD_OK;
 
-    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, outData-&SMoCommand::gBody[0]);
-    HVPPRestorePortState();
-
 }
 
 void
@@ -687,9 +641,7 @@ SMoHVPP::ProgramEEPROM()
     //
     HVPPLoadCommand(0x00);
     if (!timeout){
-      HVPPSavePortState();
       SMoCommand::SendResponse();
-      HVPPRestorePortState();
     }
 }
 
@@ -722,9 +674,7 @@ SMoHVPP::ReadEEPROM()
     }
     *outData = STATUS_CMD_OK;
 
-    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, outData-&SMoCommand::gBody[0]);
-    HVPPRestorePortState();
 }
 
 static void
@@ -739,9 +689,7 @@ ProgramFuseLock(uint8_t command, uint8_t byteSel)
     HVPPCommitDataWithPulseWidth(pulseWidth, byteSel);
 
     if (HVPPPollWait(pollTimeout)){
-      HVPPSavePortState();
       SMoCommand::SendResponse();
-      HVPPRestorePortState();
     }
 }
 
@@ -756,9 +704,7 @@ ReadFuseLock(uint8_t byteSel)
     HVPPSetControls(kDone);
     HVPPDataMode(OUTPUT);
 
-    HVPPSavePortState();
     SMoCommand::SendResponse(STATUS_CMD_OK, 3);
-    HVPPRestorePortState();
 }
 
 void
@@ -799,11 +745,10 @@ ReadSignatureCal(uint8_t addr, uint8_t byteSel)
     HVPPDataMode(INPUT);
     *dataOut = HVPPReadData(byteSel);
     HVPPSetControls(kDone);
+    
     HVPPDataMode(OUTPUT);
-
-    HVPPSavePortState();
+    
     SMoCommand::SendResponse(STATUS_CMD_OK, 3);
-    HVPPRestorePortState();
 }
 
 void
