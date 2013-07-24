@@ -202,9 +202,8 @@ enum {
 inline void
 HVPPSetControlSignals(uint8_t signals)
 {
-    pinMode(0,OUTPUT);
-    pinMode(1,OUTPUT);
-    
+    DDRD |= 0b00000011; //This could have been reset when enabling the serial port.
+
     PORTC   = (PORTC & ~0b00011111) | ((signals >> 2) & 0b00011111);
     PORTD   = (PORTD & ~0b00000011) | (signals & 0b00000011);
 }
